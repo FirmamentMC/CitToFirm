@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "1.9.0"
+    application
 }
 
 group = "moe.nea"
@@ -21,7 +22,9 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     testImplementation(kotlin("test"))
 }
-
+application {
+    mainClass.set("moe.nea.cittofirm.CitToFirm")
+}
 tasks.test {
     useJUnitPlatform()
 }
