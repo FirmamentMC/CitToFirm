@@ -36,38 +36,43 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
     }
 
     fun generateDirective(directive: Directive) {
-        val id = UUID.randomUUID().toString().replace("-", "")
-        val modelFile = targetFile("assets/cittofirmgenerated/models/item/$id.json")
+        val modelName: String
         if (directive.modelData.modelPath != null) {
-            directive.modelData.modelPath.copyTo(modelFile)
+            val smn = directive.modelData.modelPath.relativeTo(source.resolve("assets/minecraft")).toString()
+                .replace("/", "_").replace(".json", "")
+            modelName = "cittofirmgenerated:item/$smn"
+            val t = targetFile("assets/cittofirmgenerated/models/item/$smn.json")
+            if (!t.exists())
+                directive.modelData.modelPath.copyTo(t)
         } else {
-            modelFile.writeText(
-                """
-                {
-                    "parent": "minecraft:item/handheld"
-                }
-            """.trimIndent()
-            )
+            modelName = "minecraft:item/handheld"
         }
+        var textureName: String? = null
         if (directive.modelData.texturePath != null) {
-            directive.modelData.texturePath.copyTo(targetFile("assets/cittofirmgenerated/textures/item/$id.png"))
-            val n = directive.modelData.texturePath.resolveSibling(directive.modelData.texturePath.name + ".mcmeta")
-            if (n.isRegularFile()) {
-                n.copyTo(targetFile("assets/cittofirmgenerated/textures/item/$id.png.mcmeta"))
+            val id = directive.modelData.texturePath.relativeTo(source.resolve("assets/minecraft")).toString()
+                .replace("/", "_").replace(".png", "")
+            textureName = "cittofirmgenerated:item/$id"
+            val t = targetFile("assets/cittofirmgenerated/textures/item/$id.png")
+            if (!t.exists()) {
+                directive.modelData.texturePath.copyTo(t)
+                val n = directive.modelData.texturePath.resolveSibling(directive.modelData.texturePath.name + ".mcmeta")
+                if (n.isRegularFile()) {
+                    n.copyTo(targetFile("assets/cittofirmgenerated/textures/item/$id.png.mcmeta"))
+                }
             }
         }
         directive.skyblockIds.forEach {
             val replacedId = it.replace(";", "__").replace(":", "___").lowercase()
             var t = "{"
-            if (directive.modelData.texturePath != null)
+            if (textureName != null)
                 t += """
                 "textures": {
-                    "layer0": "cittofirmgenerated:item/$id"
+                    "layer0": "$textureName"
                 },
             """.trimIndent()
             targetFile("assets/firmskyblock/models/item/$replacedId.json")
                 .writeText(
-                    """$t"parent": "cittofirmgenerated:item/$id"}"""
+                    """$t"parent": "$modelName"}"""
                 )
         }
     }
