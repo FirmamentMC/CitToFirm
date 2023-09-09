@@ -1,5 +1,8 @@
 package moe.nea.cittofirm
 
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonPrimitive
 import io.github.moulberry.repo.NEURepository
 import java.nio.file.Path
 import java.util.*
@@ -35,31 +38,55 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
         return p
     }
 
+    fun targetDir(path: String): Path {
+        val p = target.resolve(path)
+        p.createDirectories()
+        return p
+    }
+
+    fun copyTexture(path: Path): String {
+        val id = indexedCopy(path, targetDir("assets/cittofirmgenerated/textures/item"))
+        return "cittofirmgenerated:item/$id"
+    }
+
+
+    fun copyModel(path: Path): String {
+        val id =
+            indexedCopy(path, targetDir("assets/cittofirmgenerated/models/item")) { a, b ->
+                val model = Gson().fromJson(a.readText(), JsonObject::class.java)
+                val p = model.get("parent")
+                if (p is JsonPrimitive) {
+                    val string = p.asString
+                    val np = resolveIdentifier(string, "models", ".json") ?: path.resolveSibling("$string.json")
+                    if (np != null && np.exists())
+                        model.addProperty("parent", copyModel(np))
+                }
+                val t = model.get("textures")
+                if (t is JsonObject) {
+                    for (k in t.keySet()) {
+                        val string = t.get(k).asString
+                        val np = resolveIdentifier(string, extension = ".png") ?: path.resolveSibling("$string.png")
+                        if (np != null && np.exists()) {
+                            t.addProperty(k, copyTexture(np))
+                        }
+                    }
+                }
+                b.writeText(Gson().toJson(model))
+            }
+        return "cittofirmgenerated:item/$id"
+
+    }
+
     fun generateDirective(directive: Directive) {
         val modelName: String
         if (directive.modelData.modelPath != null) {
-            val smn = directive.modelData.modelPath.relativeTo(source.resolve("assets/minecraft")).toString()
-                .replace("/", "_").replace(".json", "")
-            modelName = "cittofirmgenerated:item/$smn"
-            val t = targetFile("assets/cittofirmgenerated/models/item/$smn.json")
-            if (!t.exists())
-                directive.modelData.modelPath.copyTo(t)
+            modelName = copyModel(directive.modelData.modelPath)
         } else {
             modelName = "minecraft:item/handheld"
         }
         var textureName: String? = null
         if (directive.modelData.texturePath != null) {
-            val id = directive.modelData.texturePath.relativeTo(source.resolve("assets/minecraft")).toString()
-                .replace("/", "_").replace(".png", "")
-            textureName = "cittofirmgenerated:item/$id"
-            val t = targetFile("assets/cittofirmgenerated/textures/item/$id.png")
-            if (!t.exists()) {
-                directive.modelData.texturePath.copyTo(t)
-                val n = directive.modelData.texturePath.resolveSibling(directive.modelData.texturePath.name + ".mcmeta")
-                if (n.isRegularFile()) {
-                    n.copyTo(targetFile("assets/cittofirmgenerated/textures/item/$id.png.mcmeta"))
-                }
-            }
+            textureName = copyTexture(directive.modelData.texturePath)
         }
         directive.skyblockIds.forEach {
             val replacedId = it.replace(";", "__").replace(":", "___").lowercase()
@@ -75,6 +102,21 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
                     """$t"parent": "$modelName"}"""
                 )
         }
+    }
+
+    fun indexedCopy(path: Path, targetBucket: Path, transform: (Path, Path) -> Unit = { a, b -> a.copyTo(b) }): String {
+        val id = path.relativeTo(source.resolve("assets/minecraft")).toString()
+            .replace("/", "_").substringBeforeLast(".")
+        val ext = path.extension
+        val t = targetBucket.resolve("$id.$ext")
+        if (!t.exists()) {
+            val mcmeta = path.resolveSibling(path.name + ".mcmeta")
+            if (mcmeta.exists()) {
+                mcmeta.copyTo(t.resolveSibling(t.name + ".mcmeta"))
+            }
+            transform(path, t)
+        }
+        return id
     }
 
     fun generateMCMeta() {
