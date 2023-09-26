@@ -98,8 +98,9 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
                 },
             """.trimIndent()
             targetFile("assets/firmskyblock/models/item/$replacedId.json")
-                .writeText("""$t"parent": "$modelName")"""
-            }
+                .writeText(
+                    """$t"parent": "$modelName"}"""
+            )
         }
     }
 
