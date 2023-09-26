@@ -123,7 +123,7 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
         val packFormat = """
             {
               "pack": {
-                "pack_format": 15,
+                "pack_format": 18,
                 "description": "Generated via CITToFirm"
               }
             }
@@ -206,6 +206,4 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
         }
         return listOf()
     }
-
-
 }
