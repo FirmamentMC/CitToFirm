@@ -105,11 +105,12 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
     }
 
     fun indexedCopy(path: Path, targetBucket: Path, transform: (Path, Path) -> Unit = { a, b -> a.copyTo(b) }): String {
-        val id = path.relativeTo(source.resolve("assets/minecraft")).toString()
-            .replace("/", "_").substringBeforeLast(".")
+        val id = path.relativeTo(source.resolve("assets/minecraft")).toString().substringBeforeLast(".")
         val ext = path.extension
         val t = targetBucket.resolve("$id.$ext")
         if (!t.exists()) {
+            if(!t.parent.exists())
+                t.createParentDirectories()
             val mcmeta = path.resolveSibling(path.name + ".mcmeta")
             if (mcmeta.exists()) {
                 mcmeta.copyTo(t.resolveSibling(t.name + ".mcmeta"))
