@@ -1,8 +1,6 @@
 package moe.nea.cittofirm
 
-import com.google.gson.Gson
-import com.google.gson.JsonObject
-import com.google.gson.JsonPrimitive
+import com.google.gson.*
 import io.github.moulberry.repo.NEURepository
 import java.nio.file.Path
 import java.util.*
@@ -61,6 +59,11 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
                     if (np != null && np.exists())
                         model.addProperty("parent", copyModel(np))
                 }
+                val display = model.get("display")
+                if (display is JsonObject) {
+                    model.add("display", modernifyRotations(display))
+                }
+
                 val t = model.get("textures")
                 if (t is JsonObject) {
                     for (k in t.keySet()) {
@@ -75,6 +78,61 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
             }
         return "cittofirmgenerated:item/$id"
 
+    }
+
+    fun modernifyRotations(display: JsonObject): JsonObject {
+        val newDisplay = JsonObject()
+        for (key in display.keySet()) {
+            val obj = display[key] as JsonObject
+            if (key.contains("_")) {
+                newDisplay.add(key, obj)
+                continue
+            }
+            val isThirdPerson = key.contains("third")
+            newDisplay.add(key + "_righthand", transformDisplay(obj, false, isThirdPerson))
+            newDisplay.add(key + "_lefthand", transformDisplay(obj, true, isThirdPerson))
+        }
+        return newDisplay
+    }
+
+    fun transformDisplay(obj: JsonObject, makeLeftHand: Boolean, isThirdPerson: Boolean): JsonElement {
+        val newObj = obj.deepCopy()
+        newObj.add("translation", obj["translation"])
+        val rotation = obj["rotation"] as? JsonArray
+        if (rotation != null)
+            newObj.add("rotation", JsonArray().also {
+                if (isThirdPerson) {
+                    if (makeLeftHand) {
+                        it.add(rotation.get(0))
+                        it.add(rotation.get(1).asDouble)
+                        it.add(rotation.get(2).asDouble - 20)
+                    } else {
+                        it.add(rotation.get(0))
+                        it.add(-rotation.get(1).asDouble )
+                        it.add(-rotation.get(2).asDouble+ 20)
+                    }
+                } else {
+                    if (makeLeftHand) {
+                        it.add(rotation.get(0))
+                        it.add(-rotation.get(1).asDouble - 45)
+                        it.add(-rotation.get(2).asDouble)
+                    } else {
+                        it.add(rotation.get(0))
+                        it.add(rotation.get(1).asDouble + 45)
+                        it.add(rotation.get(2).asDouble)
+                    }
+                }
+            })
+        val scale = obj["scale"] as? JsonArray
+        if (scale != null) {
+            val rescale: Double = if (isThirdPerson) 1.545454 else 1.0 / 2.5
+            newObj.add("scale", JsonArray().also {
+                it.add(scale.get(0).asDouble * rescale)
+                it.add(scale.get(1).asDouble * rescale)
+                it.add(scale.get(2).asDouble * rescale)
+            })
+        }
+        return newObj
     }
 
     fun generateDirective(directive: Directive) {
@@ -109,7 +167,7 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
         val ext = path.extension
         val t = targetBucket.resolve("$id.$ext")
         if (!t.exists()) {
-            if(!t.parent.exists())
+            if (!t.parent.exists())
                 t.createParentDirectories()
             val mcmeta = path.resolveSibling(path.name + ".mcmeta")
             if (mcmeta.exists()) {
