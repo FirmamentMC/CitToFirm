@@ -166,7 +166,7 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
         val id = path.relativeTo(source.resolve("assets/minecraft")).toString().substringBeforeLast(".")
         val ext = path.extension
         val t = targetBucket.resolve("$id.$ext")
-        if (!t.exists()) {
+        if (!t.exists() && path.exists()) {
             if (!t.parent.exists())
                 t.createParentDirectories()
             val mcmeta = path.resolveSibling(path.name + ".mcmeta")

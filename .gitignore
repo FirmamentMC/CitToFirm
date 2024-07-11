@@ -45,3 +45,6 @@ bin/
 *.zip
 NotEnoughUpdates-REPO
 target
+normalized
+.idea
+old
