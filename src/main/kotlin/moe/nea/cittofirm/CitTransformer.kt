@@ -251,8 +251,8 @@ class CitTransformer(val source: Path, val target: Path, val repo: NEURepository
         val fromExtraAttributes = properties["nbt.ExtraAttributes.id"]
         if (fromExtraAttributes is String) {
             if (fromExtraAttributes.startsWith("regex:")) {
-                val pattern = fromExtraAttributes.substring("regex:".length).toPattern().asMatchPredicate()
-                return repo.items.items!!.keys.asSequence().filter { pattern.test(it) }.toList()
+                val pattern = fromExtraAttributes.substring("regex:".length).toPattern()
+                return repo.items.items!!.keys.asSequence().filter { pattern.matcher(it).matches() }.toList()
             }
             return listOf(fromExtraAttributes)
         }
