@@ -19,6 +19,8 @@ data class ProjectPath(
 		return basePath.resolve(relativePath)
 	}
 
+	fun isModel(prefix: String): Boolean = identifier?.path?.startsWith("models/$prefix") == true
+
 	val identifier = identifierPattern.matchEntire(relativePath.toString())?.let {
 		Identifier(it.groupValues[1], it.groupValues[2])
 	}
@@ -26,8 +28,16 @@ data class ProjectPath(
 	fun intoFile(): ResourcePackFile? {
 		if (identifier?.path?.endsWith(".png") == true)
 			return ImageFile(this)
-		return getCustomItemModel()
+		getCustomItemModel()?.let { return it }
+		getGenericModel()?.let { return it }
+		return null
 	}
+
+	fun getGenericModel(): NonCustomItemModel? {
+		if (isModel("")) return NonCustomItemModel(this)
+		return null
+	}
+
 
 	fun getCustomItemModel(): CustomItemModel? {
 		if (identifier?.namespace != "firmskyblock") return null
@@ -45,7 +55,17 @@ data class ProjectPath(
 data class Identifier(
 	val namespace: String,
 	val path: String,
-){
+) {
+	companion object {
+		fun parse(string: String): Identifier {
+			val split = string.split(":", limit = 2)
+			if (split.size == 1) {
+				return Identifier("minecraft", split[0])
+			}
+			return Identifier(split[0], split[1])
+		}
+	}
+
 	override fun toString(): String {
 		return "$namespace:$path"
 	}

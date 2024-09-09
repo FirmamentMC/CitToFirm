@@ -34,13 +34,14 @@ import kotlin.streams.asSequence
 class ProjectWindow(
 	val resourcePackBase: Path,
 ) : Workspace("FirmStudio - " + resourcePackBase.name) {
+	init {
+		scope.workspace = this
+	}
 	lateinit var debugStream: PrintStream
+
 	init {
 		require(resourcePackBase.isAbsolute)
 	}
-	data class ProgressElement(
-		val label: String
-	)
 
 	val files: ObservableMap<
 			ProjectPath,
@@ -56,6 +57,12 @@ class ProjectWindow(
 		})
 		FXCollections.unmodifiableObservableList(list)
 	}
+	val models = run {
+		FilteredList(fileList) {
+			it.file.isModel("")
+		}
+	}
+
 	val watchService = RecursiveWatchService(resourcePackBase, Duration.ofMillis(400L)) {
 		Platform.runLater {
 			it.forEach { updateFile(it.file) }
@@ -134,7 +141,12 @@ class ProjectWindow(
 							}
 							onUserSelectNea {
 								runAsync {
-									it.openUI(resourcePackBase)
+									kotlin.runCatching {
+										it.openUI(resourcePackBase)
+									}.getOrElse { ex ->
+										ex.printStackTrace(debugStream)
+										ErrorEditor(it.file.identifier.toString(), it.file.resolve(resourcePackBase))
+									}
 								} ui {
 									dock(it)
 								}
