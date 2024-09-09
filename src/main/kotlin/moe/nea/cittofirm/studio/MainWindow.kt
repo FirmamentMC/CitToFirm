@@ -13,9 +13,19 @@ import tornadofx.seconds
 import tornadofx.style
 import tornadofx.vbox
 import tornadofx.warning
+import kotlin.io.path.Path
+import kotlin.io.path.absolute
 import kotlin.jvm.optionals.getOrNull
 
 class MainWindow : View() {
+	override fun onDock() {
+		System.getProperty("firmstudio.open")?.let {
+			replaceWith(
+				ProjectWindow(Path(it).absolute()),
+				sizeToScene = true,
+			)
+		}
+	}
 	override val root = vbox(alignment = Pos.CENTER) {
 		label("Welcome to FirmStudio") {
 			style {
@@ -30,10 +40,10 @@ class MainWindow : View() {
 							warning("Not a resource pack",
 							        "The folder you selected does not contain a pack.mcmeta file which is required for a resourcepack to work. Open anyway?",
 							        ButtonType.YES, ButtonType.NO).showAndWait().getOrNull() == ButtonType.YES
-					if (shouldOpen){
+					if (shouldOpen) {
 						replaceWith(
 							transition = ViewTransition.Slide(0.2.seconds), sizeToScene = true,
-							replacement = ProjectWindow(directory.toPath()))
+							replacement = ProjectWindow(directory.toPath().absolute()))
 					}
 				}
 			}

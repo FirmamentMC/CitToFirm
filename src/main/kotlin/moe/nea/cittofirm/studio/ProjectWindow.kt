@@ -3,12 +3,12 @@ package moe.nea.cittofirm.studio
 import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.MapChangeListener
-import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
 import javafx.collections.transformation.FilteredList
 import moe.nea.cittofirm.studio.util.onUserSelectNea
 import tornadofx.Workspace
 import tornadofx.action
+import tornadofx.checkmenuitem
 import tornadofx.fitToParentSize
 import tornadofx.hbox
 import tornadofx.information
@@ -16,7 +16,6 @@ import tornadofx.item
 import tornadofx.listview
 import tornadofx.menu
 import tornadofx.menubar
-import tornadofx.onUserSelect
 import tornadofx.scrollpane
 import tornadofx.text
 import tornadofx.textarea
@@ -25,13 +24,10 @@ import tornadofx.vbox
 import java.io.OutputStream
 import java.io.PrintStream
 import java.nio.charset.StandardCharsets
-import java.nio.file.ClosedWatchServiceException
-import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardWatchEventKinds
+import java.time.Duration
 import java.util.function.Predicate
-import kotlin.concurrent.thread
 import kotlin.io.path.name
 import kotlin.streams.asSequence
 
@@ -39,7 +35,9 @@ class ProjectWindow(
 	val resourcePackBase: Path,
 ) : Workspace("FirmStudio - " + resourcePackBase.name) {
 	lateinit var debugStream: PrintStream
-
+	init {
+		require(resourcePackBase.isAbsolute)
+	}
 	data class ProgressElement(
 		val label: String
 	)
@@ -58,33 +56,9 @@ class ProjectWindow(
 		})
 		FXCollections.unmodifiableObservableList(list)
 	}
-	val progressBars: ObservableList<ProgressElement> = FXCollections.observableArrayList()
-	val watchService = FileSystems.getDefault().newWatchService()
-
-	fun setupFileWatchers() {
-		resourcePackBase.register(
-			watchService,
-			StandardWatchEventKinds.ENTRY_CREATE,
-			StandardWatchEventKinds.ENTRY_DELETE)
-		thread(start = true, name = "File Watcher Poll Thread") {
-			while (true) {
-				try {
-					val key = watchService.take()
-					Platform.runLater {
-						for (event in key.pollEvents()) {
-							if (event.kind() == StandardWatchEventKinds.OVERFLOW) {
-								scanDirectory()
-							} else if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
-								updateFile(event.context() as Path)
-							} else if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
-								updateFile(event.context() as Path)
-							}
-						}
-					}
-				} catch (ex: ClosedWatchServiceException) {
-					break
-				}
-			}
+	val watchService = RecursiveWatchService(resourcePackBase, Duration.ofMillis(400L)) {
+		Platform.runLater {
+			it.forEach { updateFile(it.file) }
 		}
 	}
 
@@ -113,6 +87,19 @@ class ProjectWindow(
 			menu("File") {
 				item("Exit").action {
 					Platform.exit()
+				}
+			}
+			menu("Import") {
+				item("Import from CIT") {
+					// TODO: show import dialogue
+				}
+			}
+			menu("Settings") {
+				checkmenuitem("Enable File Watcher") {
+					selectedProperty().bindBidirectional(Settings.enableFileWatcher)
+				}
+				checkmenuitem("Dark Mode") {
+					selectedProperty().bindBidirectional(Settings.darkMode)
 				}
 			}
 			menu("Help") {
@@ -176,7 +163,6 @@ class ProjectWindow(
 				}
 			}
 		}
-		setupFileWatchers()
 		scanDirectory()
 	}
 
