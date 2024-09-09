@@ -16,6 +16,7 @@ import tornadofx.item
 import tornadofx.listview
 import tornadofx.menu
 import tornadofx.menubar
+import tornadofx.replaceWith
 import tornadofx.scrollpane
 import tornadofx.text
 import tornadofx.textarea
@@ -92,6 +93,9 @@ class ProjectWindow(
 	init {
 		menubar {
 			menu("File") {
+				item("Close Project").action {
+					replaceWith(MainWindow())
+				}
 				item("Exit").action {
 					Platform.exit()
 				}

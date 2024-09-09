@@ -1,1 +1,4 @@
-{}
+{
+  "test": "10000",
+  "firmament:head_model": "firmskyblock:models/item/aspect_of_the_end.json"
+}
