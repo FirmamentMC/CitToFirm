@@ -1,5 +1,6 @@
 package moe.nea.cittofirm.studio
 
+import io.github.moulberry.repo.data.NEUItem
 import java.nio.file.Path
 import kotlin.io.path.Path
 
@@ -65,9 +66,20 @@ data class Identifier(
 			return Identifier(split[0], split[1])
 		}
 
+		private val illegalPathRegex = "[^a-z0-9_.-/]".toRegex()
+
 		fun search(search: String, identifier: Identifier): Boolean {
 			if (identifier.namespace == "cittofirminternal") return search.isBlank()
 			return identifier.toString().contains(search) // TODO: search segments individually, fuzzy
+		}
+
+		fun of(item: NEUItem): Identifier {
+			return Identifier("firmskyblock", item.skyblockItemId.lowercase()
+				.replace(":", "___")
+				.replace(illegalPathRegex) {
+					it.value.toCharArray()
+						.joinToString("") { "__" + it.code.toString(16).padStart(4, '0') }
+				})
 		}
 	}
 
@@ -75,9 +87,23 @@ data class Identifier(
 		return "$namespace:$path"
 	}
 
+	fun withKnownPath(knownPath: KnownPath): Identifier = withKnownPath(knownPath.prefix, knownPath.postfix)
+	fun withKnownPath(prefix: String, postfix: String): Identifier {
+		return Identifier(namespace, prefix + path + postfix)
+	}
+
+	fun withoutKnownPath(knownPath: KnownPath): Identifier = withoutKnownPath(knownPath.prefix, knownPath.postfix)
 	fun withoutKnownPath(prefix: String, postfix: String): Identifier {
 		require(path.startsWith(prefix))
 		require(path.endsWith(postfix))
 		return Identifier(namespace, path.substring(prefix.length, path.length - postfix.length))
+	}
+}
+
+data class KnownPath(val prefix: String, val postfix: String) {
+
+	companion object {
+		val itemModel = KnownPath("models/item/", ".json")
+		val genericModel = KnownPath("models/", ".json")
 	}
 }

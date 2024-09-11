@@ -1,5 +1,6 @@
 package moe.nea.cittofirm.studio
 
+import io.github.moulberry.repo.data.NEUItem
 import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.MapChangeListener
@@ -30,7 +31,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import java.util.function.Predicate
+import kotlin.io.path.createParentDirectories
 import kotlin.io.path.name
+import kotlin.io.path.writeText
 import kotlin.streams.asSequence
 
 class ProjectWindow(
@@ -90,6 +93,19 @@ class ProjectWindow(
 		watchService.close()
 	}
 
+	fun openFile(it: ResourcePackFile) {
+		runAsync {
+			kotlin.runCatching {
+				it.openUI(resourcePackBase)
+			}.getOrElse { ex ->
+				ex.printStackTrace()
+				ErrorEditor(it.file.identifier.toString(), it.file.resolve(resourcePackBase))
+			}
+		} ui {
+			dock(it)
+		}
+	}
+
 	init {
 		menubar {
 			menu("File") {
@@ -144,22 +160,46 @@ class ProjectWindow(
 								}
 							}
 							onUserSelectNea {
-								runAsync {
-									kotlin.runCatching {
-										it.openUI(resourcePackBase)
-									}.getOrElse { ex ->
-										ex.printStackTrace()
-										ErrorEditor(it.file.identifier.toString(), it.file.resolve(resourcePackBase))
-									}
-								} ui {
-									dock(it)
-								}
+								openFile(it)
 							}
 						}
 					}
 				}
 			}
 			item("Items") {
+				vbox {
+					fitToParentSize()
+					val filtered = FilteredList(RepoService.items)
+					textfield {
+						promptText = "Search"
+						textProperty().addListener { obs, old, new ->
+							filtered.setPredicate(createItemFilter(new))
+						}
+					}
+					scrollpane(fitToWidth = true, fitToHeight = true) {
+						fitToParentSize()
+						listview(filtered) {
+							cellFormat {
+								graphic = hbox {
+									text(it.displayName)
+								}
+							}
+							onUserSelectNea {
+								runAsync {
+									val path = ProjectPath.of(Identifier.of(it).withKnownPath(KnownPath.itemModel))
+									val file = path.intoFile()!!
+									val filePath = path.resolve(resourcePackBase)
+
+									if (!Files.exists(filePath)) {
+										filePath.createParentDirectories()
+										filePath.writeText(Resources.defaultModel) // TODO: replace texture maybe?
+									}
+									openFile(file)
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 		with(bottomDrawer) {
@@ -187,6 +227,14 @@ class ProjectWindow(
 			}
 		}
 		scanDirectory()
+	}
+
+	private fun createItemFilter(new: String): Predicate<in NEUItem> {
+		val words = new.split(" ").filter { it.isNotBlank() }
+		return Predicate {
+			val searchText = it.skyblockItemId + it.displayName + it.lore.joinToString()
+			words.all { searchText.contains(it) }
+		}
 	}
 
 	private fun createFileFilter(new: String): Predicate<in ResourcePackFile> {

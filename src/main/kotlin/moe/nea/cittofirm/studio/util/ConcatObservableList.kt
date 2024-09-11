@@ -51,6 +51,37 @@ class ConcatObservableList<T>(
 				return change.removed
 			}
 
+			override fun getAddedSize(): Int {
+				return change.getAddedSize()
+			}
+
+			override fun getRemovedSize(): Int {
+				return change.getRemovedSize()
+			}
+
+			override fun getPermutation(p0: Int): Int {
+				return change.getPermutation(p0)
+			}
+
+			override fun wasPermutated(): Boolean {
+				return change.wasPermutated()
+			}
+
+			override fun wasAdded(): Boolean {
+				return change.wasAdded()
+			}
+
+			override fun wasRemoved(): Boolean {
+				return change.wasRemoved()
+			}
+
+			override fun wasReplaced(): Boolean {
+				return change.wasReplaced()
+			}
+
+			override fun wasUpdated(): Boolean {
+				return change.wasUpdated()
+			}
 			override fun getPermutation(): IntArray {
 				return IntArray(change.to - change.from) { change.getPermutation(it + change.from) + constPrepend.size }
 			}

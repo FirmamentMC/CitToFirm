@@ -23,7 +23,7 @@ object Settings {
 		configPath.writeText(gson.toJson(jsonObject))
 	}
 
-	private val configPath = Path(System.getProperty("user.home")) / ".config/FirmStudio/config.json"
+	private val configPath = XDGPaths.config() / "FirmStudio/config.json"
 	private val jsonObject = (
 			if (configPath.exists()) runCatching {
 				gson.fromJson(configPath.readText(), JsonObject::class.java)

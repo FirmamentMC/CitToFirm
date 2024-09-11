@@ -7,6 +7,7 @@ import tornadofx.launch
 
 
 fun main(args: Array<String>) {
+	RepoService.init()
 	launch<FirmStudio>(args)
 }
 
