@@ -56,10 +56,10 @@ class ProjectWindow(
 		})
 		FXCollections.unmodifiableObservableList(list)
 	}
-	val models = run {
+	val models: FilteredList<GenericModel> = run {
 		FilteredList(fileList) {
-			it.file.isModel("")
-		}
+			it is GenericModel
+		} as FilteredList<GenericModel>
 	}
 
 	val watchService = RecursiveWatchService(resourcePackBase, Duration.ofMillis(400L)) {

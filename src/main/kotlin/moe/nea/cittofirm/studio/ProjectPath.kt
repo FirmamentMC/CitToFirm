@@ -73,4 +73,10 @@ data class Identifier(
 	override fun toString(): String {
 		return "$namespace:$path"
 	}
+
+	fun withoutKnownPath(prefix: String, postfix: String): Identifier {
+		require(path.startsWith(prefix))
+		require(path.endsWith(postfix))
+		return Identifier(namespace, path.substring(prefix.length, path.length - postfix.length))
+	}
 }

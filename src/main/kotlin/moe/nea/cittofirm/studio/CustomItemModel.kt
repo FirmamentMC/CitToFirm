@@ -35,7 +35,9 @@ sealed interface ResourcePackFile : Comparable<ResourcePackFile> {
 
 val gson = GsonBuilder().setPrettyPrinting().create()
 
-sealed interface GenericModel : ResourcePackFile
+sealed interface GenericModel : ResourcePackFile {
+	val modelIdentifier get() = file.identifier!!.withoutKnownPath("models/", ".json")
+}
 data class NonCustomItemModel(
 	override val file: ProjectPath
 ) : GenericModel {
@@ -70,9 +72,8 @@ class CustomItemModelEditor(
 				field("Head Model Override") {
 					tooltip("Override how this item renders when equipped as a helmet.\nThis needs to point to another model.")
 					autoCompletableTextField {
-						// TODO: use actual model identifiers here
 						val sentinelNull = ProjectPath.of(Identifier("cittofirminternal", "models/item/null_model"))
-							.intoFile()!!
+							.intoFile() as GenericModel
 						searchFunction = { search ->
 							// TODO: this is not reactive lol
 							// TODO: make my own TransformationList that prepends the null
@@ -80,7 +81,7 @@ class CustomItemModelEditor(
 								.filter { Identifier.search(search, it.file.identifier!!) }
 								.mapTo(FXCollections.observableArrayList()) {
 									if (it == sentinelNull) ""
-									else it?.file?.identifier?.toString()
+									else it.modelIdentifier.toString()
 								}
 						}
 						textProperty().set(json["firmament:head_model"]?.asString ?: "")
