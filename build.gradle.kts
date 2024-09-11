@@ -31,6 +31,7 @@ dependencies {
 	implementation("moe.nea:neurepoparser:1.3.2")
 	implementation("com.google.code.gson:gson:2.10.1")
 	implementation("no.tornado:tornadofx:1.7.20")
+	implementation("de.jensd:fontawesomefx:8.2")
 	testImplementation(kotlin("test"))
 }
 application {

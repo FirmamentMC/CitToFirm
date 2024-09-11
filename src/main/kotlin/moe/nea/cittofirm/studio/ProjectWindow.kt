@@ -61,10 +61,17 @@ class ProjectWindow(
 		})
 		FXCollections.unmodifiableObservableList(list)
 	}
+	val modelDataCache = ModelDataCache(this)
+
 	val models: FilteredList<GenericModel> = run {
 		FilteredList(fileList) {
 			it is GenericModel
 		} as FilteredList<GenericModel>
+	}
+	val textures: FilteredList<ImageFile> = run {
+		FilteredList(fileList) {
+			it is ImageFile
+		} as FilteredList<ImageFile>
 	}
 
 	val watchService = RecursiveWatchService(resourcePackBase, Duration.ofMillis(400L)) {

@@ -103,6 +103,7 @@ data class Identifier(
 data class KnownPath(val prefix: String, val postfix: String) {
 
 	companion object {
+		val genericTexture = KnownPath("textures/", ".png")
 		val itemModel = KnownPath("models/item/", ".json")
 		val genericModel = KnownPath("models/", ".json")
 	}

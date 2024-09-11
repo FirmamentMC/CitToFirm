@@ -6,24 +6,16 @@ import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.paint.Color
 import javafx.scene.text.TextAlignment
-import moe.nea.cittofirm.studio.util.observedCheapMap
-import moe.nea.cittofirm.studio.util.observedFilter
-import moe.nea.cittofirm.studio.util.stringProperty
-import moe.nea.cittofirm.studio.util.withPrepended
 import tornadofx.CssBox
 import tornadofx.MultiValue
 import tornadofx.UIComponent
 import tornadofx.action
 import tornadofx.button
-import tornadofx.field
-import tornadofx.fieldset
-import tornadofx.form
 import tornadofx.hbox
 import tornadofx.label
 import tornadofx.px
 import tornadofx.style
 import tornadofx.text
-import tornadofx.tooltip
 import tornadofx.vbox
 import java.nio.file.Path
 import kotlin.io.path.readText
@@ -66,63 +58,6 @@ data class CustomItemModel(
 	}
 }
 
-val sentinelNull = ProjectPath.of(Identifier("cittofirminternal", "models/item/null_model"))
-	.intoFile() as GenericModel
-
-class CustomItemModelEditor(
-	val model: CustomItemModel,
-	val json: JsonObject,
-) : UIComponent(model.skyblockItemId) {
-	val parentProp = json.stringProperty("parent")
-	val headModelProp = json.stringProperty("firmament:head_model")
-	override val root = vbox {
-		form {
-			fieldset("Rendering") {
-				field("Parent Model") {
-					tooltip("The parent model supplies fallbacks for every option not specified. Typically this is used with a model shape that has its textures overridden in the child model.")
-					autoCompletableTextField {
-						searchFunction = { search ->
-							project.models.withPrepended(sentinelNull)
-								.observedFilter { Identifier.search(search, it.file.identifier!!) }
-								.observedCheapMap {
-									if (it == sentinelNull) ""
-									else it.modelIdentifier.toString()
-								}
-						}
-						textProperty().bindBidirectional(parentProp)
-					}
-				}
-			}
-			fieldset("Override") {
-				label("Predicate Overrides only get applied once. These options only matter if this is the first model loaded. The Head Model Override gets applied according to the resolved model.") {
-					isWrapText = true
-				}
-				field("Head Model Override") {
-					tooltip("Override how this item renders when equipped as a helmet.\nThis needs to point to another model.")
-					autoCompletableTextField {
-						searchFunction = { search ->
-							project.models.withPrepended(sentinelNull)
-								.observedFilter { Identifier.search(search, it.file.identifier!!) }
-								.observedCheapMap {
-									if (it == sentinelNull) ""
-									else it.modelIdentifier.toString()
-								}
-						}
-						textProperty().bindBidirectional(headModelProp)
-					}
-					// TODO: error indicator here? maybe a link if valid / error button if not
-				}
-			}
-			button("Save") {
-				action {
-					model.saveNewJson(project.resourcePackBase, json)
-				}
-			}
-		}
-	}
-}
-
-val UIComponent.project get() = workspace as ProjectWindow
 
 class ErrorEditor(name: String, val file: Path) : UIComponent("Error - $name") {
 	override val root = vbox(alignment = Pos.CENTER) {
@@ -157,6 +92,8 @@ class ErrorEditor(name: String, val file: Path) : UIComponent("Error - $name") {
 data class ImageFile(
 	override val file: ProjectPath
 ) : ResourcePackFile {
+	val textureIdentifier get() = file.identifier!!.withoutKnownPath(KnownPath.genericTexture)
+
 	override fun openUI(basePath: Path): UIComponent {
 		return ErrorEditor(file.identifier.toString(), file.resolve(basePath))
 	}
