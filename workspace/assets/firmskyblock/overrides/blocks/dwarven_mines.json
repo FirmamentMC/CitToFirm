@@ -1,0 +1,26 @@
+{
+    "modes": [
+        "mining_3"
+    ],
+    "area": [
+        {
+            "min": [
+                47,
+                200,
+                -108
+            ],
+            "max": [
+                81,
+                213,
+                -41
+            ]
+        }
+    ],
+    "replacements": {
+        "minecraft:blue_wool": "firmskyblock:mithril_deep",
+        "minecraft:light_blue_wool": {
+            "block": "firmskyblock:mithril_deep",
+            "sound": "minecraft:block.wet_sponge.hit"
+        }
+    }
+}

@@ -1,6 +1,6 @@
 {
-  "pack": {
-    "pack_format": 34,
-    "description": "Hahaha! It is I, The Test Pack!"
-  }
+    "pack": {
+        "pack_format": 1,
+        "description": ""
+    }
 }

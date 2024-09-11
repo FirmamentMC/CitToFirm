@@ -14,6 +14,7 @@ import tornadofx.button
 import tornadofx.field
 import tornadofx.fieldset
 import tornadofx.form
+import tornadofx.hbox
 import tornadofx.label
 import tornadofx.px
 import tornadofx.style
@@ -59,6 +60,8 @@ data class CustomItemModel(
 		file.resolve(basePath).writeText(gson.toJson(json))
 	}
 }
+val sentinelNull = ProjectPath.of(Identifier("cittofirminternal", "models/item/null_model"))
+	.intoFile() as GenericModel
 
 class CustomItemModelEditor(
 	val model: CustomItemModel,
@@ -67,13 +70,34 @@ class CustomItemModelEditor(
 	override val root = vbox {
 		form {
 			fieldset("Rendering") {
+				field("Parent Model") {
+					tooltip("The parent model supplies fallbacks for every option not specified. Typically this is used with a model shape that has its textures overridden in the child model.")
+					autoCompletableTextField {
+						searchFunction = { search ->
+							// TODO: this is not reactive lol
+							// TODO: make my own TransformationList that prepends the null
+							FXCollections.concat(FXCollections.singletonObservableList(sentinelNull), project.models)
+								.filter { Identifier.search(search, it.file.identifier!!) }
+								.mapTo(FXCollections.observableArrayList()) {
+									if (it == sentinelNull) ""
+									else it.modelIdentifier.toString()
+								}
+						}
+						textProperty().set(json["parent"]?.asString ?: "")
+						textProperty().addListener { obv, old, new ->
+							json.addProperty("parent",
+							                 if (new == "") null else new)
+						}
+					}
+				}
 			}
 			fieldset("Override") {
+				label("Predicate Overrides only get applied once. These options only matter if this is the first model loaded. The Head Model Override gets applied according to the resolved model.") {
+					isWrapText = true
+				}
 				field("Head Model Override") {
 					tooltip("Override how this item renders when equipped as a helmet.\nThis needs to point to another model.")
 					autoCompletableTextField {
-						val sentinelNull = ProjectPath.of(Identifier("cittofirminternal", "models/item/null_model"))
-							.intoFile() as GenericModel
 						searchFunction = { search ->
 							// TODO: this is not reactive lol
 							// TODO: make my own TransformationList that prepends the null
@@ -105,8 +129,8 @@ class CustomItemModelEditor(
 val UIComponent.project get() = workspace as ProjectWindow
 
 class ErrorEditor(name: String, val file: Path) : UIComponent("Error - $name") {
-	override val root = vbox {
-		alignment = Pos.TOP_CENTER
+	override val root = hbox {
+		alignment = Pos.CENTER
 		vbox(alignment = Pos.CENTER) {
 			style {
 				backgroundColor = MultiValue(arrayOf(Color.RED.interpolate(Color.TRANSPARENT, 0.4)))
