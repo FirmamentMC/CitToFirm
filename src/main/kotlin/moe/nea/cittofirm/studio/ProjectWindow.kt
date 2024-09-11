@@ -21,6 +21,8 @@ import tornadofx.text
 import tornadofx.textarea
 import tornadofx.textfield
 import tornadofx.vbox
+import java.io.FileDescriptor
+import java.io.FileOutputStream
 import java.io.OutputStream
 import java.io.PrintStream
 import java.nio.charset.StandardCharsets
@@ -164,18 +166,23 @@ class ProjectWindow(
 			item("Debug Logs") {
 				textarea {
 					isEditable = false
-					val os = object : OutputStream() {
-						override fun write(b: Int) {
-							TODO("Not yet implemented")
-						}
+					fun createForkStream(fd: FileDescriptor): PrintStream {
+						val oldOs = FileOutputStream(fd)
+						val os = object : OutputStream() {
+							override fun write(b: Int) {
+								TODO("Not yet implemented")
+							}
 
-						override fun write(b: ByteArray, off: Int, len: Int) {
-							this@textarea.appendText(String(b.copyOfRange(off, len), StandardCharsets.UTF_8))
+							override fun write(b: ByteArray, off: Int, len: Int) {
+								val recons = String(b.copyOfRange(off, len), StandardCharsets.UTF_8)
+								this@textarea.appendText(recons)
+								oldOs.write(b, off, len)
+							}
 						}
+						return PrintStream(os, false, StandardCharsets.UTF_8.name())
 					}
-					val debugStream = PrintStream(os, false, StandardCharsets.UTF_8.name())
-					System.setErr(debugStream)
-					System.setOut(debugStream)
+					System.setErr(createForkStream(FileDescriptor.err))
+					System.setOut(createForkStream(FileDescriptor.out))
 				}
 			}
 		}
