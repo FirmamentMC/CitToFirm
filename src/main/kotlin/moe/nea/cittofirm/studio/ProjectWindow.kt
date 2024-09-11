@@ -64,7 +64,7 @@ class ProjectWindow(
 
 	val watchService = RecursiveWatchService(resourcePackBase, Duration.ofMillis(400L)) {
 		Platform.runLater {
-			it.forEach { updateFile(it.file) }
+			it.forEach { updateFile(it) }
 		}
 	}
 

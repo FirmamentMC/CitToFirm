@@ -52,7 +52,7 @@ class ConcatObservableList<T>(
 			}
 
 			override fun getPermutation(): IntArray {
-				return IntArray(change.to - change.from) { change.getPermutation(it + change.from) }
+				return IntArray(change.to - change.from) { change.getPermutation(it + change.from) + constPrepend.size }
 			}
 		})
 	}

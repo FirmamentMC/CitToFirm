@@ -15,7 +15,7 @@ import kotlin.io.path.isDirectory
 class RecursiveWatchService(
 	val root: Path,
 	val pollDebounce: Duration,
-	val dispatch: (Set<FileChange>) -> Unit,
+	val dispatch: (Set<Path>) -> Unit,
 ) : Closeable {
 	private val watcher = root.fileSystem.newWatchService()
 	private val pollThread = thread(start = true) {
@@ -27,13 +27,15 @@ class RecursiveWatchService(
 	}
 
 	private fun enterDirectory(path: Path) {
-		Files.walk(path).filter { it.isDirectory() }
-			.forEach {
-				it.register(watcher,
-				              StandardWatchEventKinds.ENTRY_CREATE,
-				              StandardWatchEventKinds.ENTRY_DELETE,
-				              StandardWatchEventKinds.ENTRY_MODIFY)
-			}
+		Files.walk(path).use {
+			it.filter { it.isDirectory() }
+				.forEach {
+					it.register(watcher,
+					            StandardWatchEventKinds.ENTRY_CREATE,
+					            StandardWatchEventKinds.ENTRY_DELETE,
+					            StandardWatchEventKinds.ENTRY_MODIFY)
+				}
+		}
 	}
 
 	private fun pollLoop() {
@@ -59,22 +61,12 @@ class RecursiveWatchService(
 	}
 
 
-	enum class FileChangeKind {
-		CREATED,
-		MODIFY,
-		DELETED,
-	}
-
-	data class FileChange(
-		val file: Path, val type: FileChangeKind,
-	)
-
-	private var events: MutableSet<FileChange> = mutableSetOf()
+	private var changed: MutableSet<Path> = mutableSetOf()
 
 	private fun dispatchEvents() {
-		val oldEvents = events
+		val oldEvents = changed
 		dispatch(oldEvents)
-		events = mutableSetOf()
+		changed = mutableSetOf()
 	}
 
 	private fun processEvents(watchKey: WatchKey, pollEvents: List<WatchEvent<*>>) {
@@ -86,13 +78,19 @@ class RecursiveWatchService(
 			if (pollEvent.kind() == StandardWatchEventKinds.OVERFLOW) {
 				// TODO: handle overflow (somehow)
 			} else if (pollEvent.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
-				if (resolvedPath.isDirectory())
+				if (resolvedPath.isDirectory()) {
 					enterDirectory(resolvedPath)
-				events.add(FileChange(resolvedPath, FileChangeKind.CREATED))
+					Files.walk(resolvedPath)
+						.use {
+							it.forEach { changed.add(it) }
+						}
+				} else {
+					changed.add(resolvedPath)
+				}
 			} else if (pollEvent.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
-				events.add(FileChange(resolvedPath, FileChangeKind.DELETED))
+				changed.add(resolvedPath)
 			} else if (pollEvent.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
-				events.add(FileChange(resolvedPath, FileChangeKind.MODIFY))
+				changed.add(resolvedPath)
 			}
 		}
 	}
@@ -100,6 +98,7 @@ class RecursiveWatchService(
 	init {
 		enterDirectory(root)
 	}
+
 	override fun close() {
 		watcher.close()
 		pollThread.interrupt()
