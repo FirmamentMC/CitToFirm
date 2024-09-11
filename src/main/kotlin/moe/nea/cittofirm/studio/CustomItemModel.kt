@@ -2,7 +2,7 @@ package moe.nea.cittofirm.studio
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
-import javafx.collections.FXCollections
+import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.paint.Color
 import javafx.scene.text.TextAlignment
@@ -43,6 +43,7 @@ val gson = GsonBuilder().setPrettyPrinting().create()
 sealed interface GenericModel : ResourcePackFile {
 	val modelIdentifier get() = file.identifier!!.withoutKnownPath("models/", ".json")
 }
+
 data class NonCustomItemModel(
 	override val file: ProjectPath
 ) : GenericModel {
@@ -64,6 +65,7 @@ data class CustomItemModel(
 		file.resolve(basePath).writeText(gson.toJson(json))
 	}
 }
+
 val sentinelNull = ProjectPath.of(Identifier("cittofirminternal", "models/item/null_model"))
 	.intoFile() as GenericModel
 
@@ -123,28 +125,31 @@ class CustomItemModelEditor(
 val UIComponent.project get() = workspace as ProjectWindow
 
 class ErrorEditor(name: String, val file: Path) : UIComponent("Error - $name") {
-	override val root = hbox {
-		alignment = Pos.CENTER
-		vbox(alignment = Pos.CENTER) {
-			style {
-				backgroundColor = MultiValue(arrayOf(Color.RED.interpolate(Color.TRANSPARENT, 0.4)))
-				backgroundRadius = MultiValue(arrayOf(CssBox(15.px, 15.px, 15.px, 15.px)))
-			}
-			label("Error!") {
-				textAlignment = TextAlignment.CENTER
+	override val root = vbox(alignment = Pos.CENTER) {
+		hbox {
+			alignment = Pos.CENTER
+			vbox(alignment = Pos.CENTER) {
+				padding = Insets(3.0)
 				style {
-					fontSize = 30.px
+					backgroundColor = MultiValue(arrayOf(Color.RED.interpolate(Color.TRANSPARENT, 0.4)))
+					backgroundRadius = MultiValue(arrayOf(CssBox(15.px, 15.px, 15.px, 15.px)))
 				}
-			}
-			text("Could not edit file $name. Either loading this file caused an error, or this file cannot be edited in FirmStudio.") {
-				wrappingWidthProperty().set(300.0)
-			}
-			button("Open externally") {
-				action {
-					hostServices.showDocument(file.toUri().toString())
+				label("Error!") {
+					textAlignment = TextAlignment.CENTER
+					style {
+						fontSize = 30.px
+					}
 				}
+				text("Could not edit file $name. Either loading this file caused an error, or this file cannot be edited in FirmStudio.") {
+					wrappingWidthProperty().set(300.0)
+				}
+				button("Open externally") {
+					action {
+						hostServices.showDocument(file.toUri().toString())
+					}
+				}
+				autosize()
 			}
-			autosize()
 		}
 	}
 }
