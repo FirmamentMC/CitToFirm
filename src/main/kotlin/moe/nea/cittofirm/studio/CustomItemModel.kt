@@ -18,6 +18,7 @@ import tornadofx.label
 import tornadofx.px
 import tornadofx.style
 import tornadofx.text
+import tornadofx.tooltip
 import tornadofx.vbox
 import java.nio.file.Path
 import kotlin.io.path.readText
@@ -67,6 +68,7 @@ class CustomItemModelEditor(
 			}
 			fieldset("Override") {
 				field("Head Model Override") {
+					tooltip("Override how this item renders when equipped as a helmet.\nThis needs to point to another model.")
 					autoCompletableTextField {
 						// TODO: use actual model identifiers here
 						val sentinelNull = ProjectPath.of(Identifier("cittofirminternal", "models/item/null_model"))
