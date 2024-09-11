@@ -66,6 +66,7 @@ data class Identifier(
 		}
 
 		fun search(search: String, identifier: Identifier): Boolean {
+			if (identifier.namespace == "cittofirminternal") return search.isBlank()
 			return identifier.toString().contains(search) // TODO: search segments individually, fuzzy
 		}
 	}

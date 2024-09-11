@@ -6,6 +6,10 @@ import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.paint.Color
 import javafx.scene.text.TextAlignment
+import moe.nea.cittofirm.studio.util.observedCheapMap
+import moe.nea.cittofirm.studio.util.observedFilter
+import moe.nea.cittofirm.studio.util.stringProperty
+import moe.nea.cittofirm.studio.util.withPrepended
 import tornadofx.CssBox
 import tornadofx.MultiValue
 import tornadofx.UIComponent
@@ -67,6 +71,8 @@ class CustomItemModelEditor(
 	val model: CustomItemModel,
 	val json: JsonObject,
 ) : UIComponent(model.skyblockItemId) {
+	val parentProp = json.stringProperty("parent")
+	val headModelProp = json.stringProperty("firmament:head_model")
 	override val root = vbox {
 		form {
 			fieldset("Rendering") {
@@ -74,20 +80,14 @@ class CustomItemModelEditor(
 					tooltip("The parent model supplies fallbacks for every option not specified. Typically this is used with a model shape that has its textures overridden in the child model.")
 					autoCompletableTextField {
 						searchFunction = { search ->
-							// TODO: this is not reactive lol
-							// TODO: make my own TransformationList that prepends the null
-							FXCollections.concat(FXCollections.singletonObservableList(sentinelNull), project.models)
-								.filter { Identifier.search(search, it.file.identifier!!) }
-								.mapTo(FXCollections.observableArrayList()) {
+							project.models.withPrepended(sentinelNull)
+								.observedFilter { Identifier.search(search, it.file.identifier!!) }
+								.observedCheapMap {
 									if (it == sentinelNull) ""
 									else it.modelIdentifier.toString()
 								}
 						}
-						textProperty().set(json["parent"]?.asString ?: "")
-						textProperty().addListener { obv, old, new ->
-							json.addProperty("parent",
-							                 if (new == "") null else new)
-						}
+						textProperty().bindBidirectional(parentProp)
 					}
 				}
 			}
@@ -99,20 +99,14 @@ class CustomItemModelEditor(
 					tooltip("Override how this item renders when equipped as a helmet.\nThis needs to point to another model.")
 					autoCompletableTextField {
 						searchFunction = { search ->
-							// TODO: this is not reactive lol
-							// TODO: make my own TransformationList that prepends the null
-							FXCollections.concat(FXCollections.singletonObservableList(sentinelNull), project.models)
-								.filter { Identifier.search(search, it.file.identifier!!) }
-								.mapTo(FXCollections.observableArrayList()) {
+							project.models.withPrepended(sentinelNull)
+								.observedFilter { Identifier.search(search, it.file.identifier!!) }
+								.observedCheapMap {
 									if (it == sentinelNull) ""
 									else it.modelIdentifier.toString()
 								}
 						}
-						textProperty().set(json["firmament:head_model"]?.asString ?: "")
-						textProperty().addListener { obv, old, new ->
-							json.addProperty("firmament:head_model",
-							                 if (new == "") null else new)
-						}
+						textProperty().bindBidirectional(headModelProp)
 					}
 					// TODO: error indicator here? maybe a link if valid / error button if not
 				}
