@@ -2,18 +2,15 @@ package moe.nea.cittofirm.studio
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
-import javafx.beans.property.SimpleObjectProperty
 import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.paint.Color
 import javafx.scene.text.TextAlignment
-import javafx.util.StringConverter
 import tornadofx.CssBox
 import tornadofx.MultiValue
 import tornadofx.UIComponent
 import tornadofx.action
 import tornadofx.button
-import tornadofx.combobox
 import tornadofx.field
 import tornadofx.fieldset
 import tornadofx.form
@@ -70,34 +67,27 @@ class CustomItemModelEditor(
 			}
 			fieldset("Override") {
 				field("Head Model Override") {
-					combobox<ResourcePackFile> {
+					autoCompletableTextField {
+						// TODO: use actual model identifiers here
 						val sentinelNull = ProjectPath.of(Identifier("cittofirminternal", "models/item/null_model"))
 							.intoFile()!!
-						// TODO: make my own TransformationList that prepends the null
-						itemsProperty().set((
-							FXCollections.concat(FXCollections.singletonObservableList(sentinelNull),
-							                     project.models)))
-						converter = object : StringConverter<ResourcePackFile?>() {
-							override fun toString(p0: ResourcePackFile?): String {
-								if (p0 == sentinelNull) return "No custom model."
-								return p0?.file?.identifier?.toString() ?: ""
-							}
-
-							override fun fromString(p0: String?): ResourcePackFile {
-								TODO("Not yet implemented")
-							}
+						searchFunction = { search ->
+							// TODO: this is not reactive lol
+							// TODO: make my own TransformationList that prepends the null
+							FXCollections.concat(FXCollections.singletonObservableList(sentinelNull), project.models)
+								.filter { Identifier.search(search, it.file.identifier!!) }
+								.mapTo(FXCollections.observableArrayList()) {
+									if (it == sentinelNull) ""
+									else it?.file?.identifier?.toString()
+								}
 						}
-						valueProperty().set(json["firmament:head_model"]
-							                    ?.asString
-							                    ?.let(Identifier::parse)
-							                    ?.let(ProjectPath::of)
-							                    ?.intoFile() ?: sentinelNull)
-						valueProperty().addListener { obv, o, n ->
-							json.addProperty("firmament:head_model", (if (n == sentinelNull) null else n)
-								?.file?.identifier?.toString())
+						textProperty().set(json["firmament:head_model"]?.asString ?: "")
+						textProperty().addListener { obv, old, new ->
+							json.addProperty("firmament:head_model",
+							                 if (new == "") null else new)
 						}
-						// TODO: add create model button
 					}
+					// TODO: error indicator here? maybe a link if valid / error button if not
 				}
 			}
 			button("Save") {

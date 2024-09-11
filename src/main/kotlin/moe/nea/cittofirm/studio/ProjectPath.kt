@@ -64,6 +64,10 @@ data class Identifier(
 			}
 			return Identifier(split[0], split[1])
 		}
+
+		fun search(search: String, identifier: Identifier): Boolean {
+			return identifier.toString().contains(search) // TODO: search segments individually, fuzzy
+		}
 	}
 
 	override fun toString(): String {

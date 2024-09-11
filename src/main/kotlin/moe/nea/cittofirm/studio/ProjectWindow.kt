@@ -16,7 +16,6 @@ import tornadofx.item
 import tornadofx.listview
 import tornadofx.menu
 import tornadofx.menubar
-import tornadofx.replaceWith
 import tornadofx.scrollpane
 import tornadofx.text
 import tornadofx.textarea
@@ -38,7 +37,6 @@ class ProjectWindow(
 	init {
 		scope.workspace = this
 	}
-	lateinit var debugStream: PrintStream
 
 	init {
 		require(resourcePackBase.isAbsolute)
@@ -148,7 +146,7 @@ class ProjectWindow(
 									kotlin.runCatching {
 										it.openUI(resourcePackBase)
 									}.getOrElse { ex ->
-										ex.printStackTrace(debugStream)
+										ex.printStackTrace()
 										ErrorEditor(it.file.identifier.toString(), it.file.resolve(resourcePackBase))
 									}
 								} ui {
@@ -175,7 +173,9 @@ class ProjectWindow(
 							this@textarea.appendText(String(b.copyOfRange(off, len), StandardCharsets.UTF_8))
 						}
 					}
-					debugStream = PrintStream(os, false, StandardCharsets.UTF_8.name())
+					val debugStream = PrintStream(os, false, StandardCharsets.UTF_8.name())
+					System.setErr(debugStream)
+					System.setOut(debugStream)
 				}
 			}
 		}
