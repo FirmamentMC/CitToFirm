@@ -72,12 +72,12 @@ data class Identifier(
 
 		fun search(search: String, identifier: Identifier): Boolean {
 			if (identifier.namespace == "cittofirminternal") return search.isBlank()
-			return identifier.toString().contains(search) // TODO: search segments individually, fuzzy
+			return identifier.toString().contains(search, ignoreCase = true) // TODO: search segments individually, fuzzy
 		}
 
 		fun of(item: NEUItem): Identifier {
 			return Identifier("firmskyblock", item.skyblockItemId.lowercase()
-				.replace(":", "___")
+				.replace(":", "___").replace(";", "__")
 				.replace(illegalPathRegex) {
 					it.value.toCharArray()
 						.joinToString("") { "__" + it.code.toString(16).padStart(4, '0') }

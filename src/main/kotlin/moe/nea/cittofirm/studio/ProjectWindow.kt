@@ -190,7 +190,8 @@ class ProjectWindow(
 						listview(filtered) {
 							cellFormat {
 								graphic = hbox {
-									text(it.displayName)
+									text(if (it.displayName.endsWith("Enchanted Book")) it.lore.first()
+									     else it.displayName)
 								}
 							}
 							onUserSelectNea {
@@ -242,7 +243,7 @@ class ProjectWindow(
 		val words = new.split(" ").filter { it.isNotBlank() }
 		return Predicate {
 			val searchText = it.skyblockItemId + it.displayName + it.lore.joinToString()
-			words.all { searchText.contains(it) }
+			words.all { searchText.contains(it, ignoreCase = true) }
 		}
 	}
 
@@ -251,7 +252,7 @@ class ProjectWindow(
 		return Predicate {
 			val searchText = it.file.identifier.toString()
 			words.all {
-				searchText.contains(it)
+				searchText.contains(it, ignoreCase = true)
 			}
 		}
 	}
