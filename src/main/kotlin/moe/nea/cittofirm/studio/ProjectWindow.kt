@@ -55,6 +55,7 @@ class ProjectWindow(
 	val fileList = run {
 		val list = FXCollections.observableArrayList<ResourcePackFile>()
 		files.addListener(MapChangeListener { change ->
+			require(Platform.isFxApplicationThread())
 			if (change.valueAdded != null)
 				list.add(change.valueAdded)
 			if (change.valueRemoved != null)
@@ -103,16 +104,14 @@ class ProjectWindow(
 	}
 
 	fun openFile(it: ResourcePackFile) {
-		runAsync {
-			kotlin.runCatching {
-				it.openUI(resourcePackBase)
-			}.getOrElse { ex ->
-				ex.printStackTrace()
-				ErrorEditor(it.file.identifier.toString(), it)
-			}
-		} ui {
-			dock(it)
+		require(Platform.isFxApplicationThread())
+		val gui = kotlin.runCatching {
+			it.openUI(resourcePackBase)
+		}.getOrElse { ex ->
+			ex.printStackTrace()
+			ErrorEditor(it.file.identifier.toString(), it)
 		}
+		dock(gui)
 	}
 
 	init {
@@ -199,12 +198,13 @@ class ProjectWindow(
 									val path = ProjectPath.of(Identifier.of(it).withKnownPath(KnownPath.itemModel))
 									val file = path.intoFile()!!
 									val filePath = path.resolve(resourcePackBase)
-
 									if (!Files.exists(filePath)) {
 										filePath.createParentDirectories()
 										filePath.writeText(Resources.defaultModel) // TODO: replace texture maybe?
 									}
-									openFile(file)
+									file
+								} ui {
+									openFile(it)
 								}
 							}
 						}

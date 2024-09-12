@@ -60,7 +60,7 @@ class ConcatObservableList<T>(
 			}
 
 			override fun getPermutation(p0: Int): Int {
-				return change.getPermutation(p0)
+				return change.getPermutation(p0 - constPrepend.size) + constPrepend.size
 			}
 
 			override fun wasPermutated(): Boolean {
@@ -82,6 +82,7 @@ class ConcatObservableList<T>(
 			override fun wasUpdated(): Boolean {
 				return change.wasUpdated()
 			}
+
 			override fun getPermutation(): IntArray {
 				return IntArray(change.to - change.from) { change.getPermutation(it + change.from) + constPrepend.size }
 			}

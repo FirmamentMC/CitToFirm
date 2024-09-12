@@ -1,8 +1,7 @@
 package moe.nea.cittofirm.studio
 
-import javafx.beans.property.ObjectPropertyBase
-import javafx.beans.property.Property
 import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.value.ObservableValue
 import javafx.collections.ObservableList
 import javafx.event.ActionEvent
 import javafx.event.EventTarget
@@ -19,10 +18,11 @@ import tornadofx.attachTo
 import tornadofx.bind
 import tornadofx.getValue
 import tornadofx.setValue
+import tornadofx.singleAssign
 
 
-fun <S, T : TableColumn<S, String>> T.useAutoCompletableTextField(searchFunction: ((String) -> ObservableList<String>)): T {
-	this.cellFactory = Callback { AutoCompletableTextFieldTableCell.withSearch(searchFunction) }
+fun <S, T : TableColumn<S, String>> T.useAutoCompletableTextField(searchResults: ((ObservableValue<String>) -> ObservableList<String>)): T {
+	this.cellFactory = Callback { AutoCompletableTextFieldTableCell.withSearch(searchResults) }
 	return this
 }
 
@@ -32,19 +32,19 @@ class AutoCompletableTextFieldTableCell<S> : TableCell<S, String>() {
 	}
 
 	companion object {
-		fun <S> withSearch(searchFunction: ((String) -> ObservableList<String>)): AutoCompletableTextFieldTableCell<S> {
-			return AutoCompletableTextFieldTableCell<S>().also { it.searchFunction = searchFunction }
+		fun <S> withSearch(searchResults: ((ObservableValue<String>) -> ObservableList<String>)?): AutoCompletableTextFieldTableCell<S> {
+			return AutoCompletableTextFieldTableCell<S>().also { it.searchResults = searchResults }
 		}
 	}
 
-	private var searchFunction: ((String) -> ObservableList<String>)? = null
+	private var searchResults: ((ObservableValue<String>) -> ObservableList<String>)? = null
 	val textField by lazy {
 		val field = AutoCompletableTextField()
 		field.onEscape = {
 			cancelEdit()
 			true
 		}
-		field.searchFunction = searchFunction
+		field.searchResults = searchResults!!.invoke(this.itemProperty())
 		field.setOnAction {
 			commitEdit(field.text)
 			it.consume()
@@ -88,42 +88,27 @@ class AutoCompletableTextFieldTableCell<S> : TableCell<S, String>() {
 class AutoCompletableTextField : TextField() {
 	private val contextMenu = ContextMenu()
 
-	val searchFunctionProperty: Property<(String) -> ObservableList<String>> =
-		object : ObjectPropertyBase<(String) -> ObservableList<String>>() {
-			override fun getBean(): Any {
-				return this@AutoCompletableTextField
-			}
-
-			override fun getName(): String {
-				return "searchFunction"
-			}
-
-			override fun invalidated() {
-				refreshSearch()
-			}
-		}
-	var searchFunction by searchFunctionProperty
-
-	private fun refreshSearch() {
-		if (searchFunctionProperty.value != null)
-			contextMenu.items.bind(searchFunction.invoke(text)) { completionOption ->
+	private var _searchResults by singleAssign<ObservableList<String>>()
+	var searchResults
+		set(value) {
+			// These values are single assign due to the bugged nature of .bind not unbinding old listeners.
+			contextMenu.items.bind(value) { completionOption ->
 				MenuItem(completionOption).also {
 					it.action {
 						this@AutoCompletableTextField.text = completionOption
-						onAction.handle(ActionEvent())
+						onAction?.handle(ActionEvent())
 					}
 				}
 			}
-	}
+			_searchResults = value
+		}
+		get() = _searchResults
+
 
 	val onEscapeProperty = SimpleObjectProperty<() -> Boolean>()
-	var onEscape by onEscapeProperty
+	var onEscape: (() -> Boolean)? by onEscapeProperty
 
 	init {
-		refreshSearch()
-		textProperty().addListener { obs, old, new ->
-			refreshSearch()
-		}
 		setOnKeyTyped {
 			// TODO: insert text and select it (so that the next keystroke replaces it)
 			if (!contextMenu.isShowing) {
@@ -140,11 +125,11 @@ class AutoCompletableTextField : TextField() {
 }
 
 fun EventTarget.autoCompletableTextField(
-	searchFunction: ((String) -> ObservableList<String>)? = null,
+	searchResults: ObservableList<String>? = null,
 	op: AutoCompletableTextField.() -> Unit = {}
 ) {
 	AutoCompletableTextField().attachTo(this, op) {
-		if (searchFunction != null)
-			it.searchFunction = searchFunction
+		if (searchResults != null)
+			it.searchResults = searchResults
 	}
 }

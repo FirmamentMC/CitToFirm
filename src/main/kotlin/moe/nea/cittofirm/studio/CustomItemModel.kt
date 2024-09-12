@@ -22,28 +22,25 @@ val gson = GsonBuilder().setPrettyPrinting().create()
 
 sealed interface GenericModel : ResourcePackFile {
 	val modelIdentifier get() = file.identifier!!.withoutKnownPath("models/", ".json")
+	fun saveNewJson(basePath: Path, json: JsonObject) {
+		file.resolve(basePath).writeText(gson.toJson(json))
+	}
+	override fun openUI(basePath: Path): UIComponent {
+		val json = gson.fromJson(file.resolve(basePath).readText(), JsonObject::class.java)
+		return CustomItemModelEditor(this, json)
+	}
 }
 
 data class NonCustomItemModel(
 	override val file: ProjectPath
 ) : GenericModel {
-	override fun openUI(basePath: Path): UIComponent {
-		TODO("Not yet implemented")
-	}
 }
 
 data class CustomItemModel(
 	val skyblockItemId: String,
 	override val file: ProjectPath,
 ) : GenericModel {
-	override fun openUI(basePath: Path): UIComponent {
-		val json = gson.fromJson(file.resolve(basePath).readText(), JsonObject::class.java)
-		return CustomItemModelEditor(this, json)
-	}
 
-	fun saveNewJson(basePath: Path, json: JsonObject) {
-		file.resolve(basePath).writeText(gson.toJson(json))
-	}
 }
 
 data class ImageFile(

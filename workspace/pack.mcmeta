@@ -1,6 +1,6 @@
 {
-    "pack": {
-        "pack_format": 1,
-        "description": ""
-    }
+  "pack": {
+    "pack_format": 18,
+    "description": "Generated via CITToFirm"
+  }
 }

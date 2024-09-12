@@ -27,6 +27,7 @@ import tornadofx.setValue
 import tornadofx.tableview
 import tornadofx.tooltip
 import tornadofx.vbox
+import java.util.function.Predicate
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.writeBytes
@@ -40,9 +41,9 @@ val sentinelNullTexture = ProjectPath.of(Identifier("cittofirminternal", "textur
 val UIComponent.project get() = workspace as ProjectWindow
 
 class CustomItemModelEditor(
-	val model: CustomItemModel,
+	val model: GenericModel,
 	val json: JsonObject,
-) : UIComponent(model.skyblockItemId) {
+) : UIComponent((model as? CustomItemModel)?.skyblockItemId ?: model.modelIdentifier.toString()) {
 	val parentProp = json.stringProperty("parent")
 	val headModelProp = json.stringProperty("firmament:head_model")
 
@@ -95,14 +96,15 @@ class CustomItemModelEditor(
 				field("Parent Model") {
 					tooltip("The parent model supplies fallbacks for every option not specified. Typically this is used with a model shape that has its textures overridden in the child model.")
 					autoCompletableTextField {
-						searchFunction = { search ->
-							project.models.withPrepended(sentinelNull)
-								.observedFilter { Identifier.search(search, it.file.identifier!!) }
-								.observedCheapMap {
-									if (it == sentinelNull) ""
-									else it.modelIdentifier.toString()
-								}
-						}
+						searchResults = project.models.withPrepended(sentinelNull)
+							.observedFilter(textProperty().map { search ->
+								Predicate { Identifier.search(search, it.file.identifier!!) }
+							})
+							.observedCheapMap {
+								if (it == sentinelNull) ""
+								else it.modelIdentifier.toString()
+							}
+
 						textProperty().bindBidirectional(parentProp)
 					}
 				}
@@ -141,16 +143,20 @@ class CustomItemModelEditor(
 										parentProp.value))?.textureNames ?: listOf())
 								}
 								column("Texture Location", Texture::locationProperty).makeEditable()
-									.useAutoCompletableTextField { search ->
+									.useAutoCompletableTextField { prop ->
 										project.textures
 											.withPrepended(sentinelNullTexture)
-											.observedFilter { Identifier.search(search, it.file.identifier!!) }
+											.observedFilter(prop.map { search ->
+												Predicate {
+													Identifier.search(search, it.file.identifier!!)
+												}
+											})
 											.observedCheapMap {
 												if (it == sentinelNullTexture) ""
 												else it.textureIdentifier.toString()
 											}
-									}
 
+									}
 								column("Open", { ReadOnlyObjectWrapper(it.value) })
 									.useButton("Open") {
 										action {
@@ -177,14 +183,15 @@ class CustomItemModelEditor(
 				field("Head Model Override") {
 					tooltip("Override how this item renders when equipped as a helmet.\nThis needs to point to another model.")
 					autoCompletableTextField {
-						searchFunction = { search ->
-							project.models.withPrepended(sentinelNull)
-								.observedFilter { Identifier.search(search, it.file.identifier!!) }
-								.observedCheapMap {
-									if (it == sentinelNull) ""
-									else it.modelIdentifier.toString()
+						searchResults = project.models.withPrepended(sentinelNull)
+							.observedFilter(textProperty().map { search ->
+								Predicate {
+									Identifier.search(search, it.file.identifier!!)
 								}
-						}
+							}).observedCheapMap {
+								if (it == sentinelNull) ""
+								else it.modelIdentifier.toString()
+							}
 						textProperty().bindBidirectional(headModelProp)
 					}
 					// TODO: error indicator here? maybe a link if valid / error button if not

@@ -1,9 +1,11 @@
 package moe.nea.cittofirm.studio.util
 
+import javafx.beans.value.ObservableValue
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.collections.transformation.FilteredList
 import javafx.collections.transformation.TransformationList
+import java.util.function.Predicate
 
 fun <Old, New> ObservableList<Old>.observedCheapMap(transform: (Old) -> New): ObservableList<New> {
 	return CheapMappedList(this, transform)
@@ -11,6 +13,12 @@ fun <Old, New> ObservableList<Old>.observedCheapMap(transform: (Old) -> New): Ob
 
 fun <T> ObservableList<T>.observedFilter(predicate: (T) -> Boolean): ObservableList<T> {
 	return FilteredList(this, predicate)
+}
+
+fun <T> ObservableList<T>.observedFilter(predicate: ObservableValue<out Predicate<in T>>): ObservableList<T> {
+	val list = FilteredList(this)
+	list.predicateProperty().bind(predicate)
+	return list
 }
 
 inline fun <T, reified C : T> ObservableList<T>.observedFilterIsInstance(): ObservableList<C> {
