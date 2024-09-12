@@ -3,6 +3,7 @@ package moe.nea.cittofirm.studio
 import io.github.moulberry.repo.data.NEUItem
 import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.extension
 
 data class ProjectPath(
 	val relativePath: Path,
@@ -22,6 +23,7 @@ data class ProjectPath(
 
 	fun isModel(prefix: String): Boolean = identifier?.path?.startsWith("models/$prefix") == true
 
+	val extension: String get() = relativePath.extension
 	val identifier = identifierPattern.matchEntire(relativePath.toString())?.let {
 		Identifier(it.groupValues[1], it.groupValues[2])
 	}

@@ -2,12 +2,14 @@ package moe.nea.cittofirm.studio
 
 import com.google.gson.JsonObject
 import javafx.beans.InvalidationListener
+import javafx.beans.property.ReadOnlyObjectWrapper
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import moe.nea.cittofirm.studio.util.observedCheapMap
 import moe.nea.cittofirm.studio.util.observedFilter
 import moe.nea.cittofirm.studio.util.stringProperty
+import moe.nea.cittofirm.studio.util.useButton
 import moe.nea.cittofirm.studio.util.withPrepended
 import tornadofx.UIComponent
 import tornadofx.action
@@ -17,12 +19,16 @@ import tornadofx.field
 import tornadofx.fieldset
 import tornadofx.form
 import tornadofx.getValue
+import tornadofx.hbox
 import tornadofx.label
 import tornadofx.makeEditable
+import tornadofx.scrollpane
 import tornadofx.setValue
 import tornadofx.tableview
 import tornadofx.tooltip
 import tornadofx.vbox
+import kotlin.io.path.createParentDirectories
+import kotlin.io.path.writeBytes
 
 val sentinelNull = ProjectPath.of(Identifier("cittofirminternal", "models/item/null_model"))
 	.intoFile() as GenericModel
@@ -64,7 +70,8 @@ class CustomItemModelEditor(
 	fun saveTextureList() {
 		val obj = JsonObject()
 		textureProp.forEach {
-			obj.addProperty(it.name, it.location)
+			if (it.location.isNotEmpty())
+				obj.addProperty(it.name, it.location)
 		}
 		json.add("textures", obj)
 	}
@@ -99,22 +106,55 @@ class CustomItemModelEditor(
 					}
 				}
 				field("Textures") {
-					tableview(textureProp) {
-						isEditable = true
-						column("Name", Texture::nameProperty).makeEditable().useAutoCompletableTextField {
-							FXCollections.observableArrayList(project.modelDataCache.getModelData(Identifier.parse(
-								parentProp.value))?.textureNames ?: listOf())
+					vbox {
+						hbox {
+							button("Add Texture Reference") {
+								action {
+									textureProp.add(Texture("layer${textureProp.size}", ""))
+								}
+							}
+							button("Create default Texture") {
+								action {
+									textureProp.add(Texture("layer0", model.modelIdentifier.toString()))
+									val texturePath = model.modelIdentifier.withKnownPath(KnownPath.genericTexture)
+									val packFile = ProjectPath.of(texturePath).intoFile()!! as ImageFile
+									runAsync {
+										val target = packFile.file.resolve(project.resourcePackBase)
+										target.createParentDirectories()
+										target.writeBytes(Resources.defaultTexture)
+									}
+								}
+							}
 						}
-						column("Texture Location", Texture::locationProperty).makeEditable()
-							.useAutoCompletableTextField { search ->
-								project.textures
-									.withPrepended(sentinelNullTexture)
-									.observedFilter { Identifier.search(search, it.file.identifier!!) }
-									.observedCheapMap {
-										if (it == sentinelNullTexture) ""
-										else it.textureIdentifier.toString()
+						scrollpane {
+							tableview(textureProp) {
+								isFillWidth = true
+								isEditable = true
+								column("Name", Texture::nameProperty).makeEditable().useAutoCompletableTextField {
+									FXCollections.observableArrayList(project.modelDataCache.getModelData(Identifier.parse(
+										parentProp.value))?.textureNames ?: listOf())
+								}
+								column("Texture Location", Texture::locationProperty).makeEditable()
+									.useAutoCompletableTextField { search ->
+										project.textures
+											.withPrepended(sentinelNullTexture)
+											.observedFilter { Identifier.search(search, it.file.identifier!!) }
+											.observedCheapMap {
+												if (it == sentinelNullTexture) ""
+												else it.textureIdentifier.toString()
+											}
+									}
+
+								column("Open", { ReadOnlyObjectWrapper(it.value) })
+									.useButton("Open") {
+										action {
+											val file = ProjectPath.of(Identifier.parse(it.location)
+												                          .withKnownPath(KnownPath.genericTexture))
+											project.openFile(file.intoFile()!!)
+										}
 									}
 							}
+						}
 					}
 				}
 			}
@@ -147,3 +187,4 @@ class CustomItemModelEditor(
 		}
 	}
 }
+

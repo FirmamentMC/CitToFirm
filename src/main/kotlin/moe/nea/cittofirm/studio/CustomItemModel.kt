@@ -2,21 +2,7 @@ package moe.nea.cittofirm.studio
 
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
-import javafx.geometry.Insets
-import javafx.geometry.Pos
-import javafx.scene.paint.Color
-import javafx.scene.text.TextAlignment
-import tornadofx.CssBox
-import tornadofx.MultiValue
 import tornadofx.UIComponent
-import tornadofx.action
-import tornadofx.button
-import tornadofx.hbox
-import tornadofx.label
-import tornadofx.px
-import tornadofx.style
-import tornadofx.text
-import tornadofx.vbox
 import java.nio.file.Path
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
@@ -28,6 +14,8 @@ sealed interface ResourcePackFile : Comparable<ResourcePackFile> {
 	}
 
 	fun openUI(basePath: Path): UIComponent
+
+	fun lint(): List<LintError> = emptyList()
 }
 
 val gson = GsonBuilder().setPrettyPrinting().create()
@@ -58,43 +46,12 @@ data class CustomItemModel(
 	}
 }
 
-
-class ErrorEditor(name: String, val file: Path) : UIComponent("Error - $name") {
-	override val root = vbox(alignment = Pos.CENTER) {
-		hbox {
-			alignment = Pos.CENTER
-			vbox(alignment = Pos.CENTER) {
-				padding = Insets(3.0)
-				style {
-					backgroundColor = MultiValue(arrayOf(Color.RED.interpolate(Color.TRANSPARENT, 0.4)))
-					backgroundRadius = MultiValue(arrayOf(CssBox(15.px, 15.px, 15.px, 15.px)))
-				}
-				label("Error!") {
-					textAlignment = TextAlignment.CENTER
-					style {
-						fontSize = 30.px
-					}
-				}
-				text("Could not edit file $name. Either loading this file caused an error, or this file cannot be edited in FirmStudio.") {
-					wrappingWidthProperty().set(300.0)
-				}
-				button("Open externally") {
-					action {
-						hostServices.showDocument(file.toUri().toString())
-					}
-				}
-				autosize()
-			}
-		}
-	}
-}
-
 data class ImageFile(
 	override val file: ProjectPath
 ) : ResourcePackFile {
 	val textureIdentifier get() = file.identifier!!.withoutKnownPath(KnownPath.genericTexture)
 
 	override fun openUI(basePath: Path): UIComponent {
-		return ErrorEditor(file.identifier.toString(), file.resolve(basePath))
+		return ImageEditor(this, file.resolve(basePath))
 	}
 }

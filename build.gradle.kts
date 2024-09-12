@@ -1,5 +1,6 @@
 plugins {
 	kotlin("jvm") version "2.0.0"
+	id("com.google.devtools.ksp") version "2.0.20-1.0.24"
 	id("org.openjfx.javafxplugin") version "0.1.0"
 	application
 }
@@ -32,6 +33,8 @@ dependencies {
 	implementation("com.google.code.gson:gson:2.10.1")
 	implementation("no.tornado:tornadofx:1.7.20")
 	implementation("de.jensd:fontawesomefx:8.2")
+	implementation("com.google.auto.service:auto-service-annotations:1.1.1")
+	ksp("dev.zacsweers.autoservice:auto-service-ksp:1.2.0")
 	testImplementation(kotlin("test"))
 }
 application {

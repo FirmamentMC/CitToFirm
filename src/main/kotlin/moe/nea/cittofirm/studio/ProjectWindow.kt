@@ -22,6 +22,7 @@ import tornadofx.text
 import tornadofx.textarea
 import tornadofx.textfield
 import tornadofx.vbox
+import java.awt.Desktop
 import java.io.FileDescriptor
 import java.io.FileOutputStream
 import java.io.OutputStream
@@ -31,6 +32,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import java.util.function.Predicate
+import javax.swing.SwingUtilities
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.name
 import kotlin.io.path.writeText
@@ -106,7 +108,7 @@ class ProjectWindow(
 				it.openUI(resourcePackBase)
 			}.getOrElse { ex ->
 				ex.printStackTrace()
-				ErrorEditor(it.file.identifier.toString(), it.file.resolve(resourcePackBase))
+				ErrorEditor(it.file.identifier.toString(), it)
 			}
 		} ui {
 			dock(it)
@@ -252,5 +254,20 @@ class ProjectWindow(
 				searchText.contains(it)
 			}
 		}
+	}
+
+	fun openExternally(packFile: ResourcePackFile) {
+		val editor = ExternalEditor.editors.find { it.canOpen(packFile) }
+		if (editor != null) {
+			editor.open(this, packFile)
+		} else {
+			SwingUtilities.invokeLater {
+				Desktop.getDesktop().browseFileDirectory(getRealPath(packFile).toFile())
+			}
+		}
+	}
+
+	fun getRealPath(packFile: ResourcePackFile): Path {
+		return packFile.file.resolve(resourcePackBase)
 	}
 }
