@@ -116,7 +116,12 @@ class CustomItemModelEditor(
 							}
 							button("Create default Texture") {
 								action {
-									textureProp.add(Texture("layer0", model.modelIdentifier.toString()))
+									val existingProp = textureProp.find { it.name == "layer0" }
+									if (existingProp != null) {
+										existingProp.location = model.modelIdentifier.toString()
+									} else {
+										textureProp.add(Texture("layer0", model.modelIdentifier.toString()))
+									}
 									val texturePath = model.modelIdentifier.withKnownPath(KnownPath.genericTexture)
 									val packFile = ProjectPath.of(texturePath).intoFile()!! as ImageFile
 									runAsync {
