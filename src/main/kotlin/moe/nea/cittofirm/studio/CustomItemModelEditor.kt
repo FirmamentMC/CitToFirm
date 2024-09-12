@@ -28,6 +28,7 @@ import tornadofx.tableview
 import tornadofx.tooltip
 import tornadofx.vbox
 import kotlin.io.path.createParentDirectories
+import kotlin.io.path.exists
 import kotlin.io.path.writeBytes
 
 val sentinelNull = ProjectPath.of(Identifier("cittofirminternal", "models/item/null_model"))
@@ -121,7 +122,8 @@ class CustomItemModelEditor(
 									runAsync {
 										val target = packFile.file.resolve(project.resourcePackBase)
 										target.createParentDirectories()
-										target.writeBytes(Resources.defaultTexture)
+										if (!target.exists())
+											target.writeBytes(Resources.defaultTexture)
 									}
 								}
 							}
