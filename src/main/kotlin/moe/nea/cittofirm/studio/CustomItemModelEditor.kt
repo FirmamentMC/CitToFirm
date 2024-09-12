@@ -126,9 +126,8 @@ class CustomItemModelEditor(
 								}
 							}
 						}
-						scrollpane {
+						scrollpane(fitToWidth = true) {
 							tableview(textureProp) {
-								isFillWidth = true
 								isEditable = true
 								column("Name", Texture::nameProperty).makeEditable().useAutoCompletableTextField {
 									FXCollections.observableArrayList(project.modelDataCache.getModelData(Identifier.parse(
@@ -148,9 +147,15 @@ class CustomItemModelEditor(
 								column("Open", { ReadOnlyObjectWrapper(it.value) })
 									.useButton("Open") {
 										action {
-											val file = ProjectPath.of(Identifier.parse(it.location)
+											val file = ProjectPath.of(Identifier.parse(it.value.location)
 												                          .withKnownPath(KnownPath.genericTexture))
 											project.openFile(file.intoFile()!!)
+										}
+									}
+								column("Delete", { ReadOnlyObjectWrapper(it.value) })
+									.useButton("Delete") {
+										action {
+											textureProp.remove(it.value)
 										}
 									}
 							}
