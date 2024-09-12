@@ -88,6 +88,12 @@ object RepoService {
 		}
 	}
 
+	fun getDisplayName(skyblockId: String): String {
+		val item = repository.items.items.get(skyblockId) ?: return skyblockId
+		return if (item.displayName.endsWith("Enchanted Book")) item.lore.first()
+		else item.displayName
+	}
+
 	val items: ObservableList<NEUItem> = FXCollections.observableArrayList()
 
 	init {

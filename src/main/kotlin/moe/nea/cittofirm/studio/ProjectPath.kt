@@ -47,7 +47,7 @@ data class ProjectPath(
 		val path = identifier.path.let(customItemModelPathPattern::matchEntire)
 			?.let { it.groupValues[1] }
 			?: return null
-		return CustomItemModel(path, this)
+		return CustomItemModel(path.replace("___", ":").replace("__", ";").uppercase(), this)
 	}
 
 	override fun compareTo(other: ProjectPath): Int {
@@ -72,7 +72,8 @@ data class Identifier(
 
 		fun search(search: String, identifier: Identifier): Boolean {
 			if (identifier.namespace == "cittofirminternal") return search.isBlank()
-			return identifier.toString().contains(search, ignoreCase = true) // TODO: search segments individually, fuzzy
+			return identifier.toString()
+				.contains(search, ignoreCase = true) // TODO: search segments individually, fuzzy
 		}
 
 		fun of(item: NEUItem): Identifier {

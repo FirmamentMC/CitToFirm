@@ -43,7 +43,7 @@ val UIComponent.project get() = workspace as ProjectWindow
 class CustomItemModelEditor(
 	val model: GenericModel,
 	val json: JsonObject,
-) : UIComponent((model as? CustomItemModel)?.skyblockItemId ?: model.modelIdentifier.toString()) {
+) : UIComponent((model as? CustomItemModel)?.skyblockItemId?.let(RepoService::getDisplayName) ?: model.modelIdentifier.toString()) {
 	val parentProp = json.stringProperty("parent")
 	val headModelProp = json.stringProperty("firmament:head_model")
 

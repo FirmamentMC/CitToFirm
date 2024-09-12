@@ -55,7 +55,7 @@ class ProjectWindow(
 	val fileList = run {
 		val list = FXCollections.observableArrayList<ResourcePackFile>()
 		files.addListener(MapChangeListener { change ->
-			require(Platform.isFxApplicationThread())
+			assert(Platform.isFxApplicationThread())
 			if (change.valueAdded != null)
 				list.add(change.valueAdded)
 			if (change.valueRemoved != null)
@@ -104,7 +104,7 @@ class ProjectWindow(
 	}
 
 	fun openFile(it: ResourcePackFile) {
-		require(Platform.isFxApplicationThread())
+		assert(Platform.isFxApplicationThread())
 		val gui = kotlin.runCatching {
 			it.openUI(resourcePackBase)
 		}.getOrElse { ex ->
@@ -189,8 +189,7 @@ class ProjectWindow(
 						listview(filtered) {
 							cellFormat {
 								graphic = hbox {
-									text(if (it.displayName.endsWith("Enchanted Book")) it.lore.first()
-									     else it.displayName)
+									text(RepoService.getDisplayName(it.skyblockItemId))
 								}
 							}
 							onUserSelectNea {
