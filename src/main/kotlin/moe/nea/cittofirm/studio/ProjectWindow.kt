@@ -12,6 +12,7 @@ import moe.nea.cittofirm.CitNormalizer
 import moe.nea.cittofirm.CitTransformer
 import moe.nea.cittofirm.studio.model.McMeta
 import moe.nea.cittofirm.studio.util.onUserSelectNea
+import tornadofx.FileChooserMode
 import tornadofx.Workspace
 import tornadofx.action
 import tornadofx.checkmenuitem
@@ -42,12 +43,20 @@ import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.locks.ReentrantLock
 import java.util.function.Predicate
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import javax.swing.SwingUtilities
 import kotlin.concurrent.withLock
+import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.createParentDirectories
+import kotlin.io.path.inputStream
+import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
+import kotlin.io.path.relativeTo
+import kotlin.io.path.walk
 import kotlin.io.path.writeText
 
+@OptIn(ExperimentalPathApi::class)
 class ProjectWindow(
 	val resourcePackBase: Path,
 ) : Workspace("FirmStudio - " + resourcePackBase.name) {
@@ -170,6 +179,26 @@ class ProjectWindow(
 							return@ui
 						}
 						importPack(file)
+					}
+				}
+				item("Export to ZIP").action {
+					val file =
+						chooseFile("Save to", arrayOf(FileChooser.ExtensionFilter("Minecraft Resource Pack", "*.zip")),
+						           mode = FileChooserMode.Save).singleOrNull()
+					if (file == null) return@action
+					runAsync {
+						ZipOutputStream(file.outputStream()).use { zis ->
+							resourcePackBase.walk().filter { ".git" !in it.toString() }
+								.forEach {
+									zis.putNextEntry(ZipEntry(it.relativeTo(resourcePackBase).toString()))
+									if (it.isRegularFile())
+										it.inputStream().use {
+											it.copyTo(zis)
+										}
+								}
+						}
+					} ui {
+						information("Export complete", "Your export has been completed to $file")
 					}
 				}
 			}
