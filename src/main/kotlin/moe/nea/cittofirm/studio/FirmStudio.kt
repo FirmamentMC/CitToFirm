@@ -20,7 +20,7 @@ class FirmStudio : App(MainWindow::class) {
 		super.start(stage)
 		val darkModeUri = FirmStudio::class.java.getResource("/dark-theme.css")!!.toURI()
 		fun updateDarkModeTo(new: Boolean) {
-			if (new)
+			if (new && darkModeUri.toString() !in stage.scene.stylesheets)
 				stage.scene.stylesheets.add(darkModeUri.toString())
 			else
 				stage.scene.stylesheets.remove(darkModeUri.toString())

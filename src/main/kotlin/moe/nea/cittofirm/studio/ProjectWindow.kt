@@ -6,10 +6,16 @@ import javafx.collections.FXCollections
 import javafx.collections.MapChangeListener
 import javafx.collections.ObservableMap
 import javafx.collections.transformation.FilteredList
+import javafx.scene.control.ButtonType
+import javafx.stage.FileChooser
+import moe.nea.cittofirm.CitNormalizer
+import moe.nea.cittofirm.CitTransformer
+import moe.nea.cittofirm.studio.model.McMeta
 import moe.nea.cittofirm.studio.util.onUserSelectNea
 import tornadofx.Workspace
 import tornadofx.action
 import tornadofx.checkmenuitem
+import tornadofx.chooseFile
 import tornadofx.fitToParentSize
 import tornadofx.hbox
 import tornadofx.information
@@ -22,21 +28,25 @@ import tornadofx.text
 import tornadofx.textarea
 import tornadofx.textfield
 import tornadofx.vbox
+import tornadofx.warning
 import java.awt.Desktop
+import java.io.File
 import java.io.FileDescriptor
 import java.io.FileOutputStream
 import java.io.OutputStream
 import java.io.PrintStream
 import java.nio.charset.StandardCharsets
+import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
+import java.util.concurrent.locks.ReentrantLock
 import java.util.function.Predicate
 import javax.swing.SwingUtilities
+import kotlin.concurrent.withLock
 import kotlin.io.path.createParentDirectories
 import kotlin.io.path.name
 import kotlin.io.path.writeText
-import kotlin.streams.asSequence
 
 class ProjectWindow(
 	val resourcePackBase: Path,
@@ -96,7 +106,11 @@ class ProjectWindow(
 
 	fun scanDirectory() {
 		files.clear()
-		Files.walk(resourcePackBase).asSequence().forEach(::updateFile)
+		runAsync {
+			Files.walk(resourcePackBase).use { it.toList() }
+		} ui {
+			it.forEach(::updateFile)
+		}
 	}
 
 	override fun onUndock() {
@@ -120,13 +134,43 @@ class ProjectWindow(
 				item("Close Project").action {
 					replaceWith(MainWindow())
 				}
+				item("Reload Files from Disk").action {
+					scanDirectory()
+				}
 				item("Exit").action {
 					Platform.exit()
 				}
 			}
 			menu("Import") {
-				item("Import from CIT") {
-					// TODO: show import dialogue
+				item("Import from CIT").action {
+					val file = chooseFile("Select an Optifine CIT pack",
+					                      arrayOf(FileChooser.ExtensionFilter("Minecraft Resource Pack", "*.zip")))
+						.singleOrNull() ?: return@action
+					runAsync {
+						McMeta.getMeta(file)
+					} ui { mcMeta ->
+						if (mcMeta == null &&
+							warning("Invalid resourcepack",
+							        "The specified file is either not a zip or missing a pack.mcmeta file. Are you sure you want to continue?",
+							        ButtonType.CANCEL, ButtonType.YES).result != ButtonType.YES
+						) {
+							return@ui
+						}
+						if (mcMeta?.pack?.packFormat != 1 &&
+							warning("Invalid resourcepack version",
+							        "The specified resourcepack is for pack format ${mcMeta?.pack?.packFormat}, expected pack format 1. Are you sure you want to continue?",
+							        ButtonType.CANCEL, ButtonType.YES).result != ButtonType.YES
+						) {
+							return@ui
+						}
+						if (warning("Warning",
+						            "Importing an old CIT file can override existing files. Make sure you have a proper back up of any important files in this pack. Are you sure you want to continue?",
+						            ButtonType.CANCEL, ButtonType.YES).result != ButtonType.YES
+						) {
+							return@ui
+						}
+						importPack(file)
+					}
 				}
 			}
 			menu("Settings") {
@@ -215,6 +259,9 @@ class ProjectWindow(
 			item("Debug Logs") {
 				textarea {
 					isEditable = false
+					val buffer = StringBuffer()
+					val lock = ReentrantLock()
+					var hasScheduledUpdate = false
 					fun createForkStream(fd: FileDescriptor): PrintStream {
 						val oldOs = FileOutputStream(fd)
 						val os = object : OutputStream() {
@@ -224,7 +271,19 @@ class ProjectWindow(
 
 							override fun write(b: ByteArray, off: Int, len: Int) {
 								val recons = String(b.copyOfRange(off, len), StandardCharsets.UTF_8)
-								this@textarea.appendText(recons)
+								lock.withLock {
+									buffer.append(recons)
+									if (!hasScheduledUpdate) {
+										hasScheduledUpdate = true
+										Platform.runLater {
+											lock.withLock {
+												hasScheduledUpdate = false
+												this@textarea.appendText(buffer.toString())
+												buffer.setLength(0)
+											}
+										}
+									}
+								}
 								oldOs.write(b, off, len)
 							}
 						}
@@ -243,6 +302,29 @@ class ProjectWindow(
 		return Predicate {
 			val searchText = it.skyblockItemId + it.displayName + it.lore.joinToString()
 			words.all { searchText.contains(it, ignoreCase = true) }
+		}
+	}
+
+	fun importPack(packFile: File) {
+		tornadofx.runAsync {
+			val normalized = XDGPaths.tempDir("normalized")
+			val source = FileSystems.newFileSystem(packFile.toPath()).getPath("/")
+			println("Normalizing paths and CIT properties from $packFile to $normalized")
+			CitNormalizer.normalize(source, normalized)
+			println("Pack CIT normalization complete")
+			println("Creating CIT transformer")
+			val trans = CitTransformer(normalized, resourcePackBase, RepoService.repository, RepoService.skinCache)
+			trans.setup(false)
+			println("Created CIT transformer")
+			println("Discovering CIT directives")
+			trans.discover()
+			println("Discovered ${trans.directives.size} directives")
+			println("Generating model files")
+			trans.generate()
+			println("Generated model files")
+			println("CIT import completed")
+		} ui {
+			information("CIT import complete", "CIT import completed. Make sure to check all generated files.")
 		}
 	}
 

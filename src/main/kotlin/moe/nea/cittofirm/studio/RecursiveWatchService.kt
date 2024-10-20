@@ -73,7 +73,7 @@ class RecursiveWatchService(
 		println("Received fs events")
 		val root = watchKey.watchable() as Path
 		for (pollEvent in pollEvents) {
-			val resolvedPath = root.resolve(pollEvent.context() as Path)
+			val resolvedPath = root.resolve((pollEvent.context() ?: continue) as Path)
 			// TODO: make create and delete events remove each other
 			if (pollEvent.kind() == StandardWatchEventKinds.OVERFLOW) {
 				// TODO: handle overflow (somehow)

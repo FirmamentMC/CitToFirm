@@ -5,6 +5,7 @@ import io.github.moulberry.repo.data.NEUItem
 import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
+import moe.nea.cittofirm.SkinCache
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URI
@@ -95,8 +96,9 @@ object RepoService {
 	}
 
 	val items: ObservableList<NEUItem> = FXCollections.observableArrayList()
-
+val skinCache = SkinCache()
 	init {
+		repository.registerReloadListener(skinCache)
 		repository.registerReloadListener {
 			Platform.runLater {
 				items.setAll(repository.items.items.values)

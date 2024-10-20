@@ -21,6 +21,7 @@ object CitToFirm {
 //        val trans = CitTransformer(normalized, target, repo, skinCache)
 //        trans.setup()
 //        trans.discover()
+		// trans.generateMCMeta()
 //        trans.generate()
     }
 }

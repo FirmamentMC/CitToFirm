@@ -1,5 +1,6 @@
 package moe.nea.cittofirm.studio
 
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.div
@@ -12,5 +13,7 @@ object XDGPaths {
 	fun cache() = getEOpt("XDG_CACHE_HOME") ?: (home() / ".cache")
 	fun data() = getEOpt("XDG_DATA_HOME") ?: (home() / ".local/share")
 	fun state() = getEOpt("XDG_STATE_HOME") ?: (home() / ".local/state")
-
+	fun tempDir(name: String): Path {
+		return Files.createTempDirectory(name)
+	}
 }
