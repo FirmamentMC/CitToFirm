@@ -38,7 +38,7 @@ dependencies {
 	testImplementation(kotlin("test"))
 }
 application {
-	mainClass.set("moe.nea.cittofirm.CitToFirm")
+	mainClass.set("moe.nea.cittofirm.studio.FirmStudioKt")
 }
 tasks.test {
 	useJUnitPlatform()
