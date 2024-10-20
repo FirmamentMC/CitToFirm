@@ -92,6 +92,10 @@ class AutoCompletableTextField : TextField() {
 	var searchResults
 		set(value) {
 			// These values are single assign due to the bugged nature of .bind not unbinding old listeners.
+			// TODO: MutableList<TargetType>.bind does not allow for changing bindings
+			// Is this worth raising an issue?
+			// You can unbind old lists since the listener is returned. But this means keeping track of the last list
+			// It would be nice to just set a flag in the listener instead.
 			contextMenu.items.bind(value) { completionOption ->
 				MenuItem(completionOption).also {
 					it.action {
